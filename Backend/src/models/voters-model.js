@@ -51,12 +51,16 @@ const voterSchema = new mongoose.Schema(
          type: String,
          trim: true,
       },
+       isAdmin: {
+           type: Boolean,
+           default: false,
+       },
       hasVoted: {
          type: Boolean,
          default: false, // Pour suivre si le votant a déjà voté (important pour le scrutin)
       },
       dateLastVoted: {
-         type: Date, // Enregistrer la date du dernier vote
+         type: Date, // Enregistrer la date du dernier Candidate
       },
       profilePicture: {
          type: String,

@@ -127,8 +127,8 @@ const deleteCandidate = async (req, res) => {
 
 const Voter = require("../models/voters-model");
 
-// --- Add a vote to a candidate ---
-// Corresponds to: PATCH /api/candidates/:id/vote
+// --- Add a Candidate to a candidate ---
+// Corresponds to: PATCH /api/candidates/:id/Candidate
 const addVoteToCandidate = async (req, res) => {
    try {
       const candidateId = req.params.id;
@@ -141,7 +141,7 @@ const addVoteToCandidate = async (req, res) => {
          });
       }
 
-      // On utilise directement le `voter` attaché à la requête par le middleware
+      // On utilise directement le `voter` attaché à la requête par le middlewares
       const voter = req.voter;
 
       if (voter.hasVoted) {
@@ -165,7 +165,7 @@ const addVoteToCandidate = async (req, res) => {
       await voter.save();
 
       res.status(200).json({
-         message: "Votre vote a été enregistré avec succès !",
+         message: "Votre Candidate a été enregistré avec succès !",
          candidate: updatedCandidate,
       });
    } catch (error) {

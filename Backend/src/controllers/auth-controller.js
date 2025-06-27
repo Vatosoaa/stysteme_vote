@@ -1,15 +1,14 @@
-// @ts-nocheck
 const Voter = require("../models/voters-model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-// Liste noire pour stocker les tokens révoqués
+
 const blackList = new Set();
 
-// Fonction pour générer un token JWT
-const generateToken = (id) => {
-   return jwt.sign({ id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "1h", // Durée de validité du token
+
+const generateToken = (voterId, isAdmin) => {
+   return jwt.sign({ id: voterId, isAdmin: isAdmin }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || "1h",
    });
 };
 
@@ -31,14 +30,13 @@ exports.signup = async (req, res) => {
       const existingVoter = await Voter.findOne({ email });
       if (existingVoter) {
          return res
-            .status(409)
-            .json({ message: "Cet email est déjà enregistré." });
+             .status(409)
+             .json({ message: "Cet email est déjà enregistré." });
       }
 
       // Hasher le mot de passe
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Créer un nouveau votant
       const newVoter = new Voter({
          email,
          password: hashedPassword,
@@ -51,11 +49,12 @@ exports.signup = async (req, res) => {
       });
       const savedVoter = await newVoter.save();
 
-      // Générer un token JWT
-      const token = generateToken(savedVoter._id);
+      // Générer un token JWT en incluant le statut isAdmin du nouveau votant
+      const token = generateToken(savedVoter._id, savedVoter.isAdmin); // <-- Passage de isAdmin
 
       res.status(201).json({ message: "Inscription réussie", token });
    } catch (error) {
+      console.error("Erreur lors de l'inscription:", error); // Log d'erreur détaillé
       res.status(500).json({
          message: "Erreur lors de l'inscription",
          error: error.message,
@@ -80,11 +79,11 @@ exports.login = async (req, res) => {
          return res.status(401).json({ message: "Identifiants invalides" });
       }
 
-      // Générer un nouveau token JWT
-      const token = generateToken(voter._id);
+      const token = generateToken(voter._id, voter.isAdmin);
 
       res.status(200).json({ message: "Connexion réussie", token });
    } catch (error) {
+      console.error("Erreur lors de la connexion:", error);
       res.status(500).json({
          message: "Erreur lors de la connexion",
          error: error.message,
@@ -92,7 +91,7 @@ exports.login = async (req, res) => {
    }
 };
 
-// Contrôleur pour la déconnexion (logout)
+
 exports.logout = (req, res) => {
    try {
       const authHeader = req.headers["authorization"];
@@ -106,6 +105,7 @@ exports.logout = (req, res) => {
 
       res.status(200).json({ message: "Déconnexion réussie" });
    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
       res.status(500).json({
          message: "Erreur lors de la déconnexion",
          error: error.message,
@@ -113,7 +113,7 @@ exports.logout = (req, res) => {
    }
 };
 
-// Middleware pour vérifier si le token est dans la blacklist
+
 exports.isBlacklisted = (token) => {
    return blackList.has(token);
 };

@@ -14,25 +14,27 @@ connectDB();
 const app = express();
 
 // --- MIDDLEWARES ---
-// Le middleware 'cors' permet d'autoriser les requêtes venant d'autres origines (ex: ton front-end Angular)
+// Le middlewares 'cors' permet d'autoriser les requêtes venant d'autres origines (ex: ton front-end Angular)
 app.use(cors());
 
-// Ce middleware permet à Express de comprendre le JSON envoyé dans les corps de requête (pour les POST, PUT, etc.)
+// Ce middlewares permet à Express de comprendre le JSON envoyé dans les corps de requête (pour les POST, PUT, etc.)
 app.use(express.json());
 
-// Ce middleware permet de lire les données envoyées par un formulaire HTML simple
+// Ce middlewares permet de lire les données envoyées par un formulaire HTML simple
 app.use(express.urlencoded({ extended: false }));
 
 // --- ROUTES ---
 // Une route de test simple pour vérifier que le serveur fonctionne bien
 app.get("/", (req, res) => {
-   res.send("Bienvenue sur l'API de gestion de vote ! 🗳️");
+   res.send("Bienvenue sur l'API de gestion de Candidate ! 🗳️");
 });
 
+const adminRoutes = require("./src/routes/admin-routes");
 const candidateRoutes = require("./src/routes/candidate-routes");
 const authRoutes = require("./src/routes/auth-routes");
-const authenticateToken = require("./src/middleware/auth-middleware");
+const authenticateToken = require("./src/middlewares/auth-middleware");
 
+app.use("/api/admin", adminRoutes);
 app.use("/api/candidates", authenticateToken, candidateRoutes);
 app.use("/api/auth", authRoutes);
 
