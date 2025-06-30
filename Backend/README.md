@@ -14,6 +14,7 @@ Cette API permet la gestion d’un système de vote en ligne, incluant l’authe
    JWT_EXPIRES_IN=1h
    PORT=5000
    ```
+- **(Le fichier .env est joint, il contient les configurations locales.)**
 
 ## Installation
 
@@ -113,24 +114,33 @@ Le serveur démarre par défaut sur `http://localhost:5000`.
 Voir l’arborescence du projet pour plus de détails sur l’organisation des fichiers.
 
 ```
-package.json
+.
+├── package.json
 ├── pnpm-lock.yaml
 ├── README.md
 ├── server.js
-└── src
-    ├── config
-    │   └── database.js
-    ├── controllers
-    │   ├── auth-controller.js
-    │   └── candidate-controller.js
-    ├── middleware
-    │   └── auth-middleware.js
-    ├── models
-    │   ├── candidate-model.js
-    │   └── voters-model.js
-    └── routes
-        ├── auth-routes.js
-        └── candidate-routes.js
+├── src
+│   ├── config
+│   │   ├── database.js
+│   │   └── multer-config.js
+│   ├── controllers
+│   │   ├── admin-controller.js
+│   │   ├── auth-controller.js
+│   │   └── candidate-controller.js
+│   ├── middlewares
+│   │   ├── admin-middleware.js
+│   │   └── auth-middleware.js
+│   ├── models
+│   │   ├── candidate-model.js
+│   │   └── voters-model.js
+│   └── routes
+│       ├── admin-routes.js
+│       ├── auth-routes.js
+│       └── candidate-routes.js
+└── uploads
+    └── images
+        ├── default-candidate.png
+        └── no-image.png
 ```
 
 ---

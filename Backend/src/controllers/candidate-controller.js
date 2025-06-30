@@ -1,38 +1,46 @@
+// @ts-nocheck
 const Candidate = require("../models/candidate-model");
 const mongoose = require("mongoose");
+const path = require('path');
+const fs = require('fs');
 
-// --- CREATE a new candidate ---
-// Corresponds to: POST /api/candidates
+const IMAGES_BASE_URL = process.env.IMAGES_BASE_URL || '/images';
+
 const createCandidate = async (req, res) => {
    try {
-      // C'est important d'inclure 'age' car il est obligatoire selon ton schéma !
-      const { fullName, age, image, description, slogan, party } = req.body;
+      const { fullName, age, description, slogan, party } = req.body;
+      let imageUrl = req.body.image;
+
+      if (req.file) {
+         imageUrl = `${IMAGES_BASE_URL}/${req.file.filename}`;
+      } else if (!imageUrl) {
+          imageUrl = `${IMAGES_BASE_URL}/default-candidate.png`;
+      }
 
       if (!fullName) {
-         return res
-            .status(400)
-            .json({ message: "Le nom complet du candidat est obligatoire." });
+         return res.status(400).json({ message: "Le nom complet du candidat est obligatoire." });
       }
       if (!age) {
-         return res
-            .status(400)
-            .json({ message: "L'âge du candidat est obligatoire." });
+         return res.status(400).json({ message: "L'âge du candidat est obligatoire." });
       }
 
-      // On crée un nouvel objet candidat avec toutes les données reçues.
       const newCandidate = await Candidate.create({
          fullName,
          age,
-         image,
+         image: imageUrl,
          description,
          slogan,
          party,
-         // 'votes' et 'timestamps' sont gérés automatiquement par le schéma Mongoose
       });
 
       res.status(201).json(newCandidate);
    } catch (error) {
-      console.error("Erreur lors de la création du candidat :", error);
+      if (req.file) {
+          const filePath = path.join(__dirname, '..', '..', process.env.UPLOAD_IMAGE_DIR, req.file.filename);
+          fs.unlink(filePath, (err) => {
+              if (err) console.error("Erreur lors de la suppression du fichier uploadé après échec de création:", err);
+          });
+      }
       res.status(400).json({
          message: "Erreur lors de la création du candidat",
          error: error.message,
@@ -40,65 +48,79 @@ const createCandidate = async (req, res) => {
    }
 };
 
-// --- READ all candidates ---
-// Corresponds to: GET /api/candidates
 const getAllCandidates = async (req, res) => {
    try {
-      // On récupère tous les candidats de la base de données
       const candidates = await Candidate.find();
       res.status(200).json(candidates);
    } catch (error) {
-      console.error(
-         "Erreur lors de la récupération de tous les candidats :",
-         error
-      );
       res.status(500).json({ message: "Erreur serveur", error: error.message });
    }
 };
 
-// --- READ one candidate by ID ---
-// Corresponds to: GET /api/candidates/:id
 const getCandidateById = async (req, res) => {
    try {
-      // On cherche un candidat par son ID dans les paramètres de la requête
       const candidate = await Candidate.findById(req.params.id);
       if (!candidate) {
          return res.status(404).json({ message: "Candidat non trouvé." });
       }
       res.status(200).json(candidate);
    } catch (error) {
-      console.error(
-         `Erreur lors de la récupération du candidat par ID ${req.params.id} :`,
-         error
-      );
       res.status(500).json({ message: "Erreur serveur", error: error.message });
    }
 };
 
-// --- UPDATE a candidate by ID ---
-// Corresponds to: PUT /api/candidates/:id
 const updateCandidate = async (req, res) => {
    try {
-      // On cherche et met à jour le candidat par son ID avec les données du corps de la requête.
-      // `new: true` pour retourner le document mis à jour.
-      // `runValidators: true` pour réexécuter les validations du schéma Mongoose lors de la mise à jour.
-      const candidate = await Candidate.findByIdAndUpdate(
-         req.params.id,
-         req.body,
+      const candidateId = req.params.id;
+      const existingCandidate = await Candidate.findById(candidateId);
+
+      if (!existingCandidate) {
+         return res.status(404).json({ message: "Candidat non trouvé." });
+      }
+
+      const updateData = { ...req.body };
+      let newImageUrl = req.body.image;
+
+      if (req.file) {
+          newImageUrl = `${IMAGES_BASE_URL}/${req.file.filename}`;
+
+          if (existingCandidate.image && existingCandidate.image.startsWith(IMAGES_BASE_URL)) {
+              const oldFilename = path.basename(existingCandidate.image);
+              const oldFilePath = path.join(__dirname, '..', '..', process.env.UPLOAD_IMAGE_DIR, oldFilename);
+              fs.unlink(oldFilePath, (err) => {
+                  if (err) console.error("Erreur lors de la suppression de l'ancienne image :", err);
+              });
+          }
+      } else if (req.body.image === '') {
+          if (existingCandidate.image && existingCandidate.image.startsWith(IMAGES_BASE_URL)) {
+              const oldFilename = path.basename(existingCandidate.image);
+              const oldFilePath = path.join(__dirname, '..', '..', process.env.UPLOAD_IMAGE_DIR, oldFilename);
+              fs.unlink(oldFilePath, (err) => {
+                  if (err) console.error("Erreur lors de la suppression de l'ancienne image lors de la mise à vide:", err);
+              });
+          }
+          newImageUrl = `${IMAGES_BASE_URL}/default-candidate.png`;
+      }
+      
+      updateData.image = newImageUrl;
+
+      const updatedCandidate = await Candidate.findByIdAndUpdate(
+         candidateId,
+         updateData,
          {
             new: true,
             runValidators: true,
          }
       );
-      if (!candidate) {
-         return res.status(404).json({ message: "Candidat non trouvé." });
-      }
-      res.status(200).json(candidate);
+
+      res.status(200).json(updatedCandidate);
    } catch (error) {
-      console.error(
-         `Erreur lors de la mise à jour du candidat par ID ${req.params.id} :`,
-         error
-      );
+      if (req.file) {
+          const filePath = path.join(__dirname, '..', '..', process.env.UPLOAD_IMAGE_DIR, req.file.filename);
+          fs.unlink(filePath, (err) => {
+              if (err) console.error("Erreur lors de la suppression du fichier uploadé après échec de la MAJ :", err);
+          });
+      }
       res.status(400).json({
          message: "Erreur lors de la mise à jour du candidat",
          error: error.message,
@@ -106,29 +128,31 @@ const updateCandidate = async (req, res) => {
    }
 };
 
-// --- DELETE a candidate by ID ---
-// Corresponds to: DELETE /api/candidates/:id
 const deleteCandidate = async (req, res) => {
    try {
-      // On cherche et supprime le candidat par son ID
-      const candidate = await Candidate.findByIdAndDelete(req.params.id);
+      const candidateId = req.params.id;
+      const candidate = await Candidate.findById(candidateId);
+
       if (!candidate) {
          return res.status(404).json({ message: "Candidat non trouvé." });
       }
+
+      if (candidate.image && candidate.image.startsWith(IMAGES_BASE_URL)) {
+          const filename = path.basename(candidate.image);
+          const filePath = path.join(__dirname, '..', '..', process.env.UPLOAD_IMAGE_DIR, filename);
+          fs.unlink(filePath, (err) => {
+              if (err) console.error("Erreur lors de la suppression de l'image du candidat :", err);
+          });
+      }
+
+      await Candidate.findByIdAndDelete(candidateId);
+
       res.status(200).json({ message: "Candidat supprimé avec succès." });
    } catch (error) {
-      console.error(
-         `Erreur lors de la suppression du candidat par ID ${req.params.id} :`,
-         error
-      );
       res.status(500).json({ message: "Erreur serveur", error: error.message });
    }
 };
 
-const Voter = require("../models/voters-model");
-
-// --- Add a Candidate to a candidate ---
-// Corresponds to: PATCH /api/candidates/:id/Candidate
 const addVoteToCandidate = async (req, res) => {
    try {
       const candidateId = req.params.id;
@@ -136,23 +160,19 @@ const addVoteToCandidate = async (req, res) => {
 
       if (!voterId) {
          return res.status(401).json({
-            message:
-               "Authentification requise. Vous devez être connecté pour voter.",
+            message: "Authentification requise. Vous devez être connecté pour voter.",
          });
       }
 
-      // On utilise directement le `voter` attaché à la requête par le middlewares
       const voter = req.voter;
 
       if (voter.hasVoted) {
-         return res
-            .status(403)
-            .json({ message: "Action non autorisée. Vous avez déjà voté." });
+         return res.status(403).json({ message: "Action non autorisée. Vous avez déjà voté." });
       }
 
       const updatedCandidate = await Candidate.findByIdAndUpdate(
          candidateId,
-         { $inc: { votes: 1 } }, // $inc est l'opérateur MongoDB pour incrémenter un nombre
+         { $inc: { votes: 1 } },
          { new: true }
       );
 
@@ -165,14 +185,10 @@ const addVoteToCandidate = async (req, res) => {
       await voter.save();
 
       res.status(200).json({
-         message: "Votre Candidate a été enregistré avec succès !",
+         message: "Votre vote a été enregistré avec succès !",
          candidate: updatedCandidate,
       });
    } catch (error) {
-      console.error(
-         `Erreur lors de l'ajout d'un vote au candidat ID ${req.params.id} :`,
-         error
-      );
       res.status(500).json({ message: "Erreur serveur", error: error.message });
    }
 };

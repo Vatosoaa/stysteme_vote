@@ -2,7 +2,6 @@ const Voter = require("../models/voters-model");
 
 exports.getAllVoters = async (req, res) => {
     try {
-        // Récupère tous les votants sauf leur mot de passe par sécurité
         const voters = await Voter.find({}).select("-password");
         res.status(200).json(voters);
     } catch (error) {

@@ -1,15 +1,18 @@
-// @ts-ignore
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import {
     getAllCandidates,
     createCandidate,
     updateCandidate,
     deleteCandidate
-} from '../services/vote';
+} from '../services/Candidate';
 import Table from '../components/common/Table';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import CandidateForm from '../components/Candidate/CandidateForm';
+
+
+const IMAGES_BASE_URL = import.meta.env.VITE_IMAGES_BASE_URL || 'http://localhost:5000';
 
 const CandidateManagementPage = () => {
     const [candidates, setCandidates] = useState([]);
@@ -20,18 +23,15 @@ const CandidateManagementPage = () => {
     const [formError, setFormError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Fonction pour recharger les candidats
     const fetchCandidates = async () => {
         setIsLoading(true);
         setError(null);
         try {
             const data = await getAllCandidates();
-            // @ts-ignore
             setCandidates(data);
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Échec du chargement des candidats.';
             setError(errorMessage);
-            console.error("Erreur lors de la récupération des candidats:", err);
         } finally {
             setIsLoading(false);
         }
@@ -41,7 +41,6 @@ const CandidateManagementPage = () => {
         fetchCandidates();
     }, []);
 
-    // Gestion de l'ouverture du formulaire d'ajout/édition
     const handleAddCandidate = () => {
         setCurrentCandidate(null);
         setFormError('');
@@ -60,47 +59,40 @@ const CandidateManagementPage = () => {
         setFormError('');
     };
 
-    const handleSubmitCandidate = async (formData) => {
+    const handleSubmitCandidate = async (formData, imageFile, removeExistingImage) => {
         setIsSubmitting(true);
         setFormError('');
         try {
             if (currentCandidate) {
-                // @ts-ignore
-                await updateCandidate(currentCandidate._id, formData);
+                await updateCandidate(currentCandidate._id, formData, imageFile, removeExistingImage);
             } else {
-                await createCandidate(formData);
+                await createCandidate(formData, imageFile);
             }
             handleCloseModal();
             fetchCandidates();
         } catch (err) {
             const msg = err.response?.data?.message || err.message || 'Erreur lors de l\'enregistrement.';
             setFormError(msg);
-            console.error("Erreur de soumission du candidat:", err);
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Gestion de la suppression d'un candidat
     const handleDeleteCandidate = async (candidateId) => {
         if (window.confirm("Êtes-vous sûr de vouloir supprimer ce candidat ? Cette action est irréversible.")) {
-            setIsLoading(true); // Active le chargement pour toute la page
+            setIsLoading(true);
             try {
                 await deleteCandidate(candidateId);
-                console.log('Candidat supprimé avec succès !');
-                fetchCandidates(); // Recharge la liste
+                fetchCandidates();
             } catch (err) {
                 const errorMessage = err.response?.data?.message || err.message || 'Échec de la suppression du candidat.';
                 setError(errorMessage);
-                console.error("Erreur lors de la suppression du candidat:", err);
             } finally {
                 setIsLoading(false);
             }
         }
     };
 
-
-    // Définition des en-têtes pour le composant Table
     const candidateTableHeaders = [
         { key: 'fullName', label: 'Nom Complet' },
         { key: 'party', label: 'Parti' },
@@ -109,15 +101,17 @@ const CandidateManagementPage = () => {
         {
             key: 'image',
             label: 'Image',
-            render: (imageUrl) => (
-                <img src={imageUrl || "https://placehold.co/40x40/E0E0E0/616161?text=No"} alt="Candidat" className="w-10 h-10 rounded-full object-cover" />
-            ),
+            render: (imageUrl) => {
+                const fullImageUrl = imageUrl ? `${IMAGES_BASE_URL}${imageUrl}` : null;
+                return (
+                    <img src={fullImageUrl} />
+                );
+            },
             cellClassName: 'text-center'
         },
         {
             key: 'actions',
             label: 'Actions',
-            // @ts-ignore
             render: (value, candidate) => (
                 <div className="flex space-x-2 justify-center">
                     <Button
@@ -150,10 +144,10 @@ const CandidateManagementPage = () => {
                 <Button
                     label="Ajouter un Candidat"
                     onClick={handleAddCandidate}
-                    color="bg-green-600"
-                    hoverColor="hover:bg-green-700"
+                    color="bg-pink-600"
+                    hoverColor="hover:bg-pink-700"
                     textColor="text-white"
-                    className="px-6 py-3 rounded-xl shadow-md"
+                    className="px-6 py-3 rounded-full shadow-lg"
                 />
             </div>
 
@@ -182,7 +176,6 @@ const CandidateManagementPage = () => {
                 />
             )}
 
-            {/* Modale pour l'ajout/édition de candidat */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}

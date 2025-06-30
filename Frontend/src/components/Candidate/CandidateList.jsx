@@ -1,7 +1,7 @@
-// @ts-ignore
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import CandidateCard from "./CandidateCard.jsx";
-import {getAllCandidates} from "../../services/vote.js";
+import {getAllCandidates} from "../../services/Candidate";
 
 const CandidateList = () => {
     const [candidates, setCandidates] = useState([]);
@@ -12,7 +12,7 @@ const CandidateList = () => {
         const fetchCandidates = async () => {
             try {
                 const data = await getAllCandidates();
-                // @ts-ignore
+                
                 setCandidates(data);
             } catch (err) {
                 const errorMessage = err.response?.data?.message || err.message || 'Échec du chargement des candidats.';
@@ -53,7 +53,7 @@ const CandidateList = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {}
                     {candidates.map((candidate) => (
-                        // @ts-ignore
+                        
                         <CandidateCard key={candidate._id} candidate={candidate} />
                     ))}
                 </div>

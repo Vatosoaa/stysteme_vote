@@ -1,18 +1,25 @@
+// @ts-nocheck
 const Voter = require("../models/voters-model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-
 const blackList = new Set();
 
+const generateToken = (voter) => {
+   const payload = {
+      id: voter._id,
+      isAdmin: voter.isAdmin,
+      email: voter.email,
+      firstName: voter.firstName,
+      lastName: voter.lastName,
+      fullName: `${voter.firstName} ${voter.lastName}`
+   };
 
-const generateToken = (voterId, isAdmin) => {
-   return jwt.sign({ id: voterId, isAdmin: isAdmin }, process.env.JWT_SECRET, {
+   return jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_IN || "1h",
    });
 };
 
-// Contrôleur pour l'inscription (signup)
 exports.signup = async (req, res) => {
    try {
       const {
@@ -26,7 +33,6 @@ exports.signup = async (req, res) => {
          city,
       } = req.body;
 
-      // Vérifier si l'email existe déjà
       const existingVoter = await Voter.findOne({ email });
       if (existingVoter) {
          return res
@@ -34,9 +40,7 @@ exports.signup = async (req, res) => {
              .json({ message: "Cet email est déjà enregistré." });
       }
 
-      // Hasher le mot de passe
       const hashedPassword = await bcrypt.hash(password, 10);
-
       const newVoter = new Voter({
          email,
          password: hashedPassword,
@@ -49,12 +53,11 @@ exports.signup = async (req, res) => {
       });
       const savedVoter = await newVoter.save();
 
-      // Générer un token JWT en incluant le statut isAdmin du nouveau votant
-      const token = generateToken(savedVoter._id, savedVoter.isAdmin); // <-- Passage de isAdmin
+      const token = generateToken(savedVoter);
 
       res.status(201).json({ message: "Inscription réussie", token });
    } catch (error) {
-      console.error("Erreur lors de l'inscription:", error); // Log d'erreur détaillé
+      console.error("Erreur lors de l'inscription:", error);
       res.status(500).json({
          message: "Erreur lors de l'inscription",
          error: error.message,
@@ -62,24 +65,22 @@ exports.signup = async (req, res) => {
    }
 };
 
-// Contrôleur pour la connexion (login)
 exports.login = async (req, res) => {
    try {
       const { email, password } = req.body;
 
-      // Vérifier si l'email existe
       const voter = await Voter.findOne({ email });
       if (!voter) {
          return res.status(401).json({ message: "Identifiants invalides" });
       }
 
-      // Vérifier le mot de passe
+      // Compare le mot de passe fourni avec le mot de passe hashé
       const isPasswordValid = await bcrypt.compare(password, voter.password);
       if (!isPasswordValid) {
          return res.status(401).json({ message: "Identifiants invalides" });
       }
 
-      const token = generateToken(voter._id, voter.isAdmin);
+      const token = generateToken(voter);
 
       res.status(200).json({ message: "Connexion réussie", token });
    } catch (error) {
@@ -90,7 +91,6 @@ exports.login = async (req, res) => {
       });
    }
 };
-
 
 exports.logout = (req, res) => {
    try {
@@ -112,7 +112,6 @@ exports.logout = (req, res) => {
       });
    }
 };
-
 
 exports.isBlacklisted = (token) => {
    return blackList.has(token);

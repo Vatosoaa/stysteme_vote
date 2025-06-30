@@ -1,6 +1,7 @@
-// @ts-ignore
+// @ts-nocheck
+
 import React, { useState, useEffect } from 'react';
-import { getAllCandidates, addVoteToCandidate } from '../services/vote';
+import { getAllCandidates, addVoteToCandidate } from '../services/Candidate';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
@@ -14,14 +15,14 @@ const VotePage = () => {
     const [isVoting, setIsVoting] = useState(false);
     const { user, isAuthenticated } = useAuth();
 
-    // @ts-ignore
+    
     const [hasUserVotedLocally, setHasUserVotedLocally] = useState(user ? user.hasVoted : false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [candidateToVoteId, setCandidateToVoteId] = useState(null);
 
     useEffect(() => {
         if (user) {
-            // @ts-ignore
+            
             setHasUserVotedLocally(user.hasVoted);
         } else {
             setHasUserVotedLocally(false);
@@ -33,7 +34,7 @@ const VotePage = () => {
         setError(null);
         try {
             const data = await getAllCandidates();
-            // @ts-ignore
+            
             setCandidates(data);
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Échec du chargement des candidats.';
@@ -50,12 +51,12 @@ const VotePage = () => {
 
     const handleInitiateVote = (candidateId) => {
         if (!isAuthenticated) {
-            // @ts-ignore
+            
             setVoteMessage({ type: 'error', text: 'Vous devez être connecté pour voter.' });
             return;
         }
         if (hasUserVotedLocally) {
-            // @ts-ignore
+            
             setVoteMessage({ type: 'error', text: 'Vous avez déjà voté.' });
             return;
         }
@@ -78,14 +79,14 @@ const VotePage = () => {
             await addVoteToCandidate(candidateToVoteId);
 
             setHasUserVotedLocally(true);
-            // @ts-ignore
+            
             setVoteMessage({ type: 'success', text: 'Votre vote a été enregistré avec succès !' });
 
             fetchCandidates();
 
         } catch (err) {
             const errorMessage = err.response?.data?.message || err.message || 'Une erreur est survenue lors du vote.';
-            // @ts-ignore
+            
             setVoteMessage({ type: 'error', text: errorMessage });
             console.error("Erreur lors du vote:", err);
         } finally {
@@ -105,13 +106,13 @@ const VotePage = () => {
             <h1 className="text-4xl font-extrabold text-gray-800 mb-8 text-center">Page de Vote</h1>
 
             {voteMessage.
-// @ts-ignore
+
             text && (
                 <div className={`p-4 rounded-lg mb-6 text-center ${voteMessage.
-// @ts-ignore
+
                 type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     <p className="font-semibold">{voteMessage.
-// @ts-ignore
+
                     text}</p>
                 </div>
             )}
@@ -143,7 +144,7 @@ const VotePage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {candidates.map((candidate) => (
                         <CandidateCard
-                            // @ts-ignore
+                            
                             key={candidate._id}
                             candidate={candidate}
                             onVote={isAuthenticated && !hasUserVotedLocally && !isVoting ? handleInitiateVote : undefined}

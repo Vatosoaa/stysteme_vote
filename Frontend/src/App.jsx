@@ -1,5 +1,3 @@
-// App.js
-
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/ui/Navbar';
@@ -36,7 +34,7 @@ function ProtectedRoute({ children }) {
 function App() {
     return (
         <AuthProvider>
-            <div className="flex flex-col min-h-screen bg-background">
+            <div className="flex flex-col min-h-screen bg-pink-500/5">
                 <Navbar />
                 <main className="flex-grow container mx-auto px-4 py-8">
                     <Routes>

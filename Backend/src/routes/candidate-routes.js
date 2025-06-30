@@ -9,13 +9,30 @@ const {
    addVoteToCandidate,
 } = require("../controllers/candidate-controller");
 const authorizeAdmin = require("../middlewares/admin-middleware");
+const authMiddleware = require("../middlewares/auth-middleware");
 
-// POST /api/candidates - Crée un nouveau candidat
-router.post("/",authorizeAdmin, createCandidate);
+const upload = require("../config/multer-config");
+
+router.post(
+   "/",
+   authMiddleware,
+   authorizeAdmin,
+   upload.single("image"),
+   createCandidate
+);
+
 router.get("/", getAllCandidates);
 router.get("/:id", getCandidateById);
-router.put("/:id",authorizeAdmin, updateCandidate);
-router.delete("/:id",authorizeAdmin, deleteCandidate);
-router.patch("/:id/vote", addVoteToCandidate);
+
+router.put(
+   "/:id",
+   authMiddleware,
+   authorizeAdmin,
+   upload.single("image"),
+   updateCandidate
+);
+
+router.delete("/:id", authMiddleware, authorizeAdmin, deleteCandidate);
+router.patch("/:id/vote", authMiddleware, addVoteToCandidate);
 
 module.exports = router;

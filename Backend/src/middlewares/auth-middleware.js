@@ -1,77 +1,36 @@
 // @ts-nocheck
-
 const jwt = require("jsonwebtoken");
-
-const authController = require("../controllers/auth-controller");
-
 const Voter = require("../models/voters-model");
+const { isBlacklisted } = require("../controllers/auth-controller");
 
+const authMiddleware = async (req, res, next) => {
+   try {
+      const authHeader = req.headers["authorization"];
+      const token = authHeader && authHeader.split(" ")[1];
 
-
-const authenticateToken = async (req, res, next) => {
-
-   const authHeader = req.headers["authorization"];
-
-   const token = authHeader && authHeader.split(" ")[1];
-
-
-
-   if (token == null) {
-
-      return res.sendStatus(401); // Non autorisé si pas de token
-
-   }
-
-
-
-// Vérifier si le token est dans la blacklist
-
-   if (authController.isBlacklisted(token)) {
-
-      return res
-
-          .status(401)
-
-          .json({ message: "Token révoqué. Veuillez vous reconnecter." });
-
-   }
-
-
-
-   jwt.verify(token, process.env.JWT_SECRET, async (err, user) => {
-
-      if (err) {
-
-         return res.sendStatus(403); // Token invalide
-
+      if (!token) {
+         return res.status(401).json({ message: "Accès refusé. Jeton manquant." });
       }
 
-
-
-      try {
-
-         const voter = await Voter.findById(user.id);
-
-         if (!voter) {
-
-            return res.sendStatus(403); // Utilisateur non trouvé (peut-être supprimé)
-
-         }
-
-         req.voter = voter; // Ajouter l'utilisateur à l'objet requête
-
-         next();
-
-      } catch (error) {
-
-         return res.sendStatus(500); // Erreur lors de la récupération de l'utilisateur
-
+      if (isBlacklisted(token)) {
+         return res.status(401).json({ message: "Authentification échouée. Jeton invalide (déconnecté)." });
       }
 
-   });
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      const voter = await Voter.findById(decoded.id).select('-password');
 
+      if (!voter) {
+         return res.status(403).json({ message: "Authentification échouée. Utilisateur non trouvé ou compte supprimé." });
+      }
+
+      req.voter = voter; 
+
+      next();
+   } catch (error) {
+      console.error("Erreur d'authentification du jeton:", error.message);
+      res.status(401).json({ message: "Authentification échouée. Jeton non valide ou expiré.", error: error.message });
+   }
 };
 
-
-
-module.exports = authenticateToken;
+module.exports = authMiddleware;

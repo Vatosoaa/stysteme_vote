@@ -12,10 +12,10 @@ const candidateSchema = new mongoose.Schema(
          required: [true, "L'âge est obligatoire"],
          min: [18, "Le candidat doit avoir au moins 18 ans."],
       },
-      // Important : ce champ stockera une URL vers l'image, pas l'image elle-même
       image: {
          type: String,
-         required: true,
+         required: false,
+         default: process.env.IMAGES_BASE_URL ? `${process.env.IMAGES_BASE_URL}/default-candidate.png` : 'no-image.png',
       },
       description: {
          type: String,
